@@ -1,0 +1,35 @@
+global _start
+
+section .data
+    message db "Hello world!", 10   
+    len equ $ - message
+
+section .text
+_start:
+    
+    mov rax, 1          
+    mov rdi, 1          
+    mov rsi, message    
+    mov rdx, lenght        
+    syscall
+
+    ; Проверка ошибок: если rax < 0, выходим с кодом 1
+    cmp rax, 0
+    jl .error           ; если rax < 0 (ошибка)
+    cmp rax, lenght
+    jne .error          ; если записано не все сообщение
+
+    ; Успешный выход
+    mov rax, 60         ; exit
+    xor rdi, rdi        ; код 0
+    syscall
+
+.error:
+    mov rax, 60         ; exit
+    mov rdi, 1          ; код ошибки
+    syscall
+
+bash
+nasm -f elf64 task1.asm -o task1.o -l task1.lst
+ld -o task1 task1.o
+strace ./task1 > strace_task1.txt 
