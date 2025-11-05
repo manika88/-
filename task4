@@ -1,0 +1,179 @@
+section .data
+    prompt1 db 'Enter 1 number: ', 0
+    prompt2 db 'Enter 2 number: ', 0
+    answer_msg db 'Answer: ', 0
+    num1_str times 7 db 0
+    num2_str times 7 db 0
+    sum_str times 7 db 0
+    num1 dd 0
+    num2 dd 0
+
+section .text
+    global _start
+
+_start:
+    ; Ввод первого числа
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, prompt1
+    mov rdx, 16
+    syscall
+
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, num1_str
+    mov rdx, 7
+    syscall
+
+    mov rsi, num1_str
+    call strlen
+    mov byte [num1_str + rax], 0
+
+    ; Ввод второго числа
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, prompt2
+    mov rdx, 16
+    syscall
+
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, num2_str
+    mov rdx, 7
+    syscall
+
+    mov rsi, num2_str
+    call strlen
+    mov byte [num2_str + rax], 0
+
+    ; Преобразование строк в числа
+    push num1_str
+    call atoi
+    add rsp, 8
+    mov [num1], eax
+
+    push num2_str
+    call atoi
+    add rsp, 8
+    mov [num2], eax
+
+    ; Сложение чисел
+    mov eax, [num1]
+    add eax, [num2]
+
+    ; Преобразование суммы в строку
+    movsxd rax, eax
+    push rax
+    push sum_str
+    call itoa
+    add rsp, 16
+
+    ; Вывод результата
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, answer_msg
+    mov rdx, 8
+    syscall
+
+    mov rsi, sum_str
+    call strlen
+    mov rdx, rax
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, sum_str
+    syscall
+
+    ; Завершение программы
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+
+; Функция atoi: преобразует строку в число
+atoi:
+    push rbp
+    mov rbp, rsp
+    mov rsi, [rbp + 16]
+    xor eax, eax
+    xor ecx, ecx
+    xor edx, edx
+    mov ebx, 10
+
+    cmp byte [rsi], '-'
+    jne .loop
+    mov edx, 1
+    inc rsi
+
+.loop:
+    mov cl, [rsi]
+    test cl, cl
+    jz .end
+    cmp cl, '0'
+    jb .end
+    cmp cl, '9'
+    ja .end
+    sub cl, '0'
+    imul eax, ebx
+    add eax, ecx
+    inc rsi
+    jmp .loop
+
+.end:
+    test edx, edx
+    jz .positive
+    neg eax
+
+.positive:
+    pop rbp
+    ret
+
+; Функция itoa: преобразует число в строку
+itoa:
+    push rbp
+    mov rbp, rsp
+    mov rdi, [rbp + 16]
+    mov eax, [rbp + 24]
+    test eax, eax
+    jns .positive
+    neg eax
+    mov byte [rdi], '-'
+    inc rdi
+
+.positive:
+    mov ebx, 10
+    xor ecx, ecx
+
+.digit_loop:
+    xor edx, edx
+    div ebx
+    add dl, '0'
+    push rdx
+    inc ecx
+    test eax, eax
+    jnz .digit_loop
+
+.store_loop:
+    pop rax
+    mov [rdi], al
+    inc rdi
+    loop .store_loop
+
+    mov byte [rdi], 0
+    pop rbp
+    ret
+
+; Функция strlen (аналогичная задаче 1)
+strlen:
+    xor rax, rax
+.loop:
+    cmp byte [rsi + rax], 0
+    je .end
+    cmp byte [rsi + rax], 10
+    je .end
+    inc rax
+    jmp .loop
+.end:
+    ret
+bash
+nasm -f elf64 task4.asm -o task4.o -l task4.lst
+ld -o task4 task4.o
+strace ./task4 > strace_task4.txt 
