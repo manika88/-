@@ -1,0 +1,95 @@
+section .data
+    prompt db 'Enter your string: ', 0
+    reversed_msg db 'Reversed: ', 0
+    buffer times 101 db 0   ; Буфер до 100 символов + 0
+
+section .text
+    global _start
+
+_start:
+    ; Вывод приглашения
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, prompt
+    mov rdx, 18
+    syscall
+
+    ; Чтение строки
+    mov rax, 0
+    mov rdi, 0
+    mov rsi, buffer
+    mov rdx, 101
+    syscall
+
+    ; Удаление символа новой строки
+    mov rsi, buffer
+    call strlen
+    mov r12, rax           
+
+    ; Вызов reverse
+    push r12               
+    push buffer            
+    call reverse
+    add rsp, 16
+
+    ; Вывод результата
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, reversed_msg
+    mov rdx, 10
+    syscall
+
+    mov rax, 1
+    mov rdi, 1
+    mov rsi, buffer
+    mov rdx, r12
+    syscall
+
+    ; Завершение программы
+    mov rax, 60
+    xor rdi, rdi
+    syscall
+
+; Функция strlen: вычисляет длину строки без 0 и \n
+strlen:
+    xor rax, rax
+.loop:
+    cmp byte [rsi + rax], 0
+    je .end
+    cmp byte [rsi + rax], 10
+    je .end
+    inc rax
+    jmp .loop
+.end:
+    ret
+
+; Функция reverse: разворачивает строку
+reverse:
+    push rbp
+    mov rbp, rsp
+    mov rsi, [rbp + 16]    
+    mov rcx, [rbp + 24]    
+    test rcx, rcx
+    jz .end
+
+    mov rdi, rsi           
+    lea rdx, [rsi + rcx - 1] 
+
+.loop:
+    cmp rdi, rdx
+    jge .end
+    mov al, [rdi]
+    mov bl, [rdx]
+    mov [rdi], bl
+    mov [rdx], al
+    inc rdi
+    dec rdx
+    jmp .loop
+
+.end:
+    pop rbp
+    ret
+bash
+nasm -f elf64 task3.asm -o task3.o -l task3.lst
+ld -o task3 task3.o
+strace ./task3 > strace_task3.txt 
